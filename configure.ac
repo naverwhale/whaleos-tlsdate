@@ -21,14 +21,30 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 CONFIG_EXTRA
 
+AC_SYS_LARGEFILE
+save_CPPFLAGS="$CPPFLAGS"
+AS_VAR_APPEND([CPPFLAGS], [" -D_TIME_BITS=64"])
+AC_COMPILE_IFELSE([AC_LANG_SOURCE([[#include <time.h>]])],
+                  [AC_DEFINE_UNQUOTED([_TIME_BITS], [64], [Enable 64-bit time_t if available])])
+CPPFLAGS="$save_CPPFLAGS"
+
+dnl NB: Keep in sync with platform2/init/startup/constants.h.
+MIN_YEAR="2023"
+MAX_YEAR=$(( MIN_YEAR + 15 ))
+
 dnl Here we should build a small program to fetch the build system time in a portable
 dnl manner. We have no Win32 users, we can fix this if we ever find one that
 dnl cares.
-COMPILE_DATE=`date +%s`
+COMPILE_DATE=`date -d "1 Jan ${MIN_YEAR}" +%s`
 AC_SUBST([COMPILE_DATE])
 AC_DEFINE_UNQUOTED([RECENT_COMPILE_DATE],
                    [${COMPILE_DATE}L],
                    [Time in seconds since the Disco epoch at build time])
+
+MAX_DATE=`date -d "1 Jan ${MAX_YEAR}" +%s`
+AC_DEFINE_UNQUOTED([TLSDATED_MAX_DATE],
+                   [${MAX_DATE}L],
+                   [Max time in seconds since the Disco epoch at build time])
 
 dnl Build up the directory we will use to install certs
 TLSDATE_CA_ROOTS="${sysconfdir}/$PACKAGE_NAME/ca-roots"

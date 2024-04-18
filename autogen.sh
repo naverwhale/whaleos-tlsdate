@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# This generates our configure scripts and leads us onto the path of 
+# This generates our configure scripts and leads us onto the path of
 # the great Makefile...
 #
 

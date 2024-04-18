@@ -187,24 +187,21 @@ time_setter_coprocess (int time_fd, int notify_fd, struct state *state)
                   status = SETTER_GETTIME_ERR;
                   goto notify_and_die;
                 }
-              struct timeval delta = {tv.tv_sec - our_time.tv_sec, 0};
-
-              /* Adjust clock gradually if it's close enough to the right time.
+              /* Do not adjust clock gradually even if it is close enough to
+               * the right time, to avoid clock speed mismatch between
+               * VMs and the host. b/197780049
+               * The old logic to adjust clocks gradually using adjtime(3) was
+               * previously introduced in crrev/c/1344802 but now it's removed.
+               * For more info, please refer to discussion on crrev/c/4573202.
                */
-              if (-ADJTIME_THRESHOLD < delta.tv_sec &&
-                  delta.tv_sec < ADJTIME_THRESHOLD)
-                {
-                  if (adjtime (&delta, NULL) < 0)
-                    {
-                      status = SETTER_SET_ERR;
-                      goto notify_and_die;
-                    }
-                }
-              else if (settimeofday (&tv, NULL) < 0)
+              if (settimeofday (&tv, NULL) < 0)
                 {
                   status = SETTER_SET_ERR;
                   goto notify_and_die;
                 }
+              else
+                info ("tlsdate-setter: system time updated to %lu.%09lu",
+                      tv.tv_sec, tv.tv_usec);
               if (state->opts.should_sync_hwclock &&
                   sync_hwclock (state->hwclock_fd, tv.tv_sec))
                 {

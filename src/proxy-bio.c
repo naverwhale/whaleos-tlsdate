@@ -74,6 +74,11 @@ int proxy_free (BIO *b)
 
 int socks4a_connect (BIO *b)
 {
+  /*
+   * TODO(b/298181613): chrome is using SOCKSv4, so tlsdate should be using
+   * SOCKSv4 instead of SOCKSv4a too (resolving the IP address of the target
+   * host on the client).
+   */
   struct proxy_ctx *ctx = BIO_get_data(b);
   int r;
   unsigned char buf[NI_MAXHOST + 16];
@@ -321,11 +326,9 @@ int proxy_read (BIO *b, char *buf, int sz)
 long proxy_ctrl (BIO *b, int cmd, long num, void *ptr)
 {
   long ret;
-  struct proxy_ctx *ctx;
   if (!BIO_next(b))
     return 0;
-  ctx = BIO_get_data(b);
-  assert (ctx);
+  assert (BIO_get_data(b));
   switch (cmd)
     {
     case BIO_C_DO_STATE_MACHINE:
@@ -415,14 +418,21 @@ BIO API *BIO_new_proxy()
 int API BIO_proxy_set_type (BIO *b, const char *type)
 {
   struct proxy_ctx *ctx = BIO_get_data(b);
-  if (!strcmp (type, "socks5"))
+  if (!strcmp (type, "socks5")) {
     ctx->connect = socks5_connect;
-  else if (!strcmp (type, "socks4a"))
+  } else if (!strcmp (type, "socks4")) {
+    /*
+     * Currently tlsdate only supports SOCKSv4a while chrome only supports
+     * SOCKSv4. TODO(b/298181613) tracks changing tlsdate to also use SOCKSv4.
+     * For now, tlsdate will simply use SOCKSv4a even though chrome asks for
+     * SOCKSv4, hoping that the server understands both.
+     */
     ctx->connect = socks4a_connect;
-  else if (!strcmp (type, "http"))
+  } else if (!strcmp (type, "http")) {
     ctx->connect = http_connect;
-  else
+  } else {
     return 1;
+  }
   return 0;
 }
 

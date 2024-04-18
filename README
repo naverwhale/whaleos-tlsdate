@@ -1,3 +1,5 @@
+This repo for WhaleOS is based on https://chromium.googlesource.com/chromiumos/third_party/tlsdate/.
+
 tlsdate: secure parasitic rdate replacement
 
  tlsdate sets the local clock by securely connecting with TLS to remote
